@@ -27,7 +27,8 @@
   "sideEffects": false,
   "scripts": {
     "build-bundle": "webpack --config ../../scripts/bundle.config.js",
-    "prepublishOnly": "npm run build-bundle && npm run build-bundle -- --env.dev"
+    "prepublishOnly": "npm run build-bundle && npm run build-bundle -- --env.dev",
+    "postInstall": "npm run build-bundle && npm run build-bundle -- --env.dev"
   },
   "dependencies": {
     "@luma.gl/shadertools": "^8.5.16"
