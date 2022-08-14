@@ -16,7 +16,8 @@ import {
   GEO_COLUMN_SUPPORT,
   MapType,
   MAP_TYPES,
-  TileFormat
+  TileFormat,
+  QueryParameters
 } from '../api/maps-api-common';
 import {
   ClassicCredentials,
@@ -24,7 +25,7 @@ import {
   Credentials,
   getDefaultCredentials
 } from '../config';
-import {FetchLayerDataResult} from '../api/maps-v3-client';
+import {FetchLayerDataResult, Headers} from '../api/maps-v3-client';
 import {assert} from '../utils';
 
 const defaultProps = {
@@ -60,11 +61,17 @@ const defaultProps = {
   // (Array<String>, optional): names of columns to fetch. By default, all columns are fetched.
   columns: {type: 'array', value: null},
 
+  // (Headers, optional): Custom headers to include in the map instantiation request.
+  headers: {type: 'object', value: {}, optional: true},
+
   // (String, optional): aggregation SQL expression. Only used for spatial index datasets
   aggregationExp: null,
 
   // (Number, optional): aggregation resolution level. Only used for spatial index datasets, defaults to 6 for quadbins, 4 for h3
-  aggregationResLevel: null
+  aggregationResLevel: null,
+
+  // (QueryParameters, optional): query parameters to be sent to the server.
+  queryParameters: null
 };
 
 /** All properties supported by CartoLayer. */
@@ -144,11 +151,17 @@ type _CartoLayerProps = {
 
   clientId?: string;
 
+  /** Custom headers to include in the map instantiation request **/
+  headers?: Headers;
+
   /** Aggregation SQL expression. Only used for spatial index datasets **/
   aggregationExp?: string;
 
   /** Aggregation resolution level. Only used for spatial index datasets, defaults to 6 for quadbins, 4 for h3. **/
   aggregationResLevel?: number;
+
+  /** Query parameters to be sent to the server. **/
+  queryParameters?: QueryParameters;
 };
 
 export default class CartoLayer<ExtraProps = {}> extends CompositeLayer<
@@ -218,7 +231,8 @@ export default class CartoLayer<ExtraProps = {}> extends CompositeLayer<
       props.formatTiles !== oldProps.formatTiles ||
       props.type !== oldProps.type ||
       JSON.stringify(props.columns) !== JSON.stringify(oldProps.columns) ||
-      JSON.stringify(props.credentials) !== JSON.stringify(oldProps.credentials);
+      JSON.stringify(props.credentials) !== JSON.stringify(oldProps.credentials) ||
+      JSON.stringify(props.queryParameters) !== JSON.stringify(oldProps.queryParameters);
 
     if (shouldUpdateData) {
       this.setState({data: null, apiVersion: null});
@@ -229,7 +243,7 @@ export default class CartoLayer<ExtraProps = {}> extends CompositeLayer<
 
   async _updateData(): Promise<void> {
     try {
-      const {type, data: source, clientId, credentials, connection, ...rest} = this.props;
+      const {type, data: source, credentials, connection, ...rest} = this.props;
       const localConfig = {...getDefaultCredentials(), ...credentials};
       const {apiVersion} = localConfig;
 
@@ -242,7 +256,6 @@ export default class CartoLayer<ExtraProps = {}> extends CompositeLayer<
         result = await fetchLayerData({
           type,
           source,
-          clientId,
           credentials: credentials as CloudNativeCredentials,
           connection,
           ...rest,
